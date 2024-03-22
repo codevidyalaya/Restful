@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Restful_API.Data;
 using Restful_API.Logging;
 using Restful_API.Models.DTO;
@@ -73,7 +72,7 @@ namespace Restful_API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
 
-            studentDto.StudentId = StudentData.studentList.OrderByDescending(u => u.StudentId).FirstOrDefault().StudentId +1;
+            studentDto.StudentId = StudentData.studentList.OrderByDescending(u => u.StudentId).FirstOrDefault().StudentId + 1;
             StudentData.studentList.Add(studentDto);
 
             return CreatedAtRoute("GetStudent", new { id = studentDto.StudentId }, studentDto); //Ok(studentDto);
