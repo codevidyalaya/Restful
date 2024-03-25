@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Restful_API.Data;
 using Restful_API.Logging;
 using Restful_API.Models.DTO;
+using Restful_API.Models.Entities;
 
 namespace Restful_API.Controllers
 {
@@ -11,9 +12,12 @@ namespace Restful_API.Controllers
     public class StudentController : ControllerBase
     {
         private readonly ILogging _logger;
-        public StudentController(ILogging logger)
+        private readonly ApplicationDbContext _db;
+
+        public StudentController(ILogging logger,ApplicationDbContext db)
         {
             _logger = logger;
+            this._db = db;
         }
 
         [HttpGet]
@@ -21,7 +25,7 @@ namespace Restful_API.Controllers
         public ActionResult<IEnumerable<StudentDto>> GetStudent()
         {
             _logger.Log("Fetch all student record");
-            return Ok(StudentData.studentList) ;
+            return Ok(_db.Student.ToList()) ;
         }
 
         [HttpGet("{id:int}",Name ="GetStudent")]
@@ -36,12 +40,12 @@ namespace Restful_API.Controllers
                 return BadRequest();
             }
 
-            if (StudentData.studentList.FirstOrDefault(u => u.StudentId == id) == null)
+            if (_db.Student.FirstOrDefault(u => u.Id == id) == null)
             {
                 return NotFound();
             }
 
-            return Ok(StudentData.studentList.FirstOrDefault(u => u.StudentId == id));
+            return Ok(_db.Student.FirstOrDefault(u => u.Id == id));
         }
 
         [HttpPost]
@@ -51,7 +55,7 @@ namespace Restful_API.Controllers
         public ActionResult<StudentDto> CreateStudent([FromBody]StudentDto studentDto)
         {
 
-            if(StudentData.studentList.FirstOrDefault(u => u.StudentName.ToLower() == studentDto.StudentName.ToLower()) !=null)
+            if(_db.Student.FirstOrDefault(u => u.StudentName.ToLower() == studentDto.StudentName.ToLower()) !=null)
             {
                 ModelState.AddModelError("CustomeErrorMessage", "Student already exists!");
                 return BadRequest(ModelState);
@@ -72,8 +76,15 @@ namespace Restful_API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
 
-            studentDto.StudentId = StudentData.studentList.OrderByDescending(u => u.StudentId).FirstOrDefault().StudentId + 1;
-            StudentData.studentList.Add(studentDto);
+            // studentDto.StudentId = StudentData.studentList.OrderByDescending(u => u.StudentId).FirstOrDefault().StudentId + 1;
+
+            Student student = new()
+            {
+                Id =studentDto.StudentId,  
+                StudentName = studentDto.StudentName
+            };
+            _db.Student.Add(student);
+            _db.SaveChanges();
 
             return CreatedAtRoute("GetStudent", new { id = studentDto.StudentId }, studentDto); //Ok(studentDto);
         }
@@ -88,12 +99,12 @@ namespace Restful_API.Controllers
             {
                 return BadRequest();
             }
-            var student = StudentData.studentList.FirstOrDefault(u => u.StudentId == id);
+            var student = _db.Student.FirstOrDefault(u => u.Id == id);
             if(student == null)
             {
                 return NotFound();
             }
-            StudentData.studentList.Remove(student);
+            _db.Student.Remove(student);
             return NoContent();
         }
 
@@ -106,9 +117,16 @@ namespace Restful_API.Controllers
             {
                 return BadRequest();
             }
-            var student = StudentData.studentList.FirstOrDefault(u => u.StudentId == objStudentDto.StudentId);
-            if(student !=null)
-                student.StudentName = objStudentDto.StudentName;
+            //var student = _db.Student.FirstOrDefault(u => u.Id == objStudentDto.StudentId);
+            //if(student !=null)
+            //    student.StudentName = objStudentDto.StudentName;
+            Student student = new()
+            {
+                Id = objStudentDto.StudentId,
+                StudentName = objStudentDto.StudentName
+            };
+            _db.Student.Update(student);
+            _db.SaveChanges();
 
             return NoContent();
         }
@@ -122,16 +140,31 @@ namespace Restful_API.Controllers
             {
                 return BadRequest();
             }
-            var student = StudentData.studentList.FirstOrDefault(u => u.StudentId == id);
-            if(student == null)
+            var student = _db.Student.FirstOrDefault(u => u.Id == id);
+            StudentDto studentdto = new()
+            {
+                StudentId = student.Id,
+                StudentName = student.StudentName
+            };
+
+            if (student == null)
             {
                 return BadRequest();
             }
-            patchDto.ApplyTo(student, ModelState);
-            if(!ModelState.IsValid)
+
+            patchDto.ApplyTo(studentdto, ModelState);
+            Student model = new()
+            {
+                Id = studentdto.StudentId,
+                StudentName = studentdto.StudentName
+            };
+
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
+            _db.Student.Update(student);
+            _db.SaveChanges();
 
             return NoContent();
         }
