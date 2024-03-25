@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Restful_API.Data;
 
@@ -11,9 +12,10 @@ using Restful_API.Data;
 namespace Restful_API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240325075346_updateStudentTable")]
+    partial class updateStudentTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -463,6 +465,9 @@ namespace Restful_API.Migrations
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
+                    b.Property<int>("ClassesId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("CreatedDate")
                         .HasColumnType("datetime2");
 
@@ -494,6 +499,9 @@ namespace Restful_API.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
+                    b.Property<int>("GendersId")
+                        .HasColumnType("int");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -516,6 +524,9 @@ namespace Restful_API.Migrations
                     b.Property<int>("ReligionId")
                         .HasColumnType("int");
 
+                    b.Property<int>("SectionsId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -523,9 +534,75 @@ namespace Restful_API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("StudyStatusId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("ClassesId");
+
+                    b.HasIndex("GendersId");
+
+                    b.HasIndex("ReligionId");
+
+                    b.HasIndex("SectionsId");
+
+                    b.HasIndex("StudyStatusId");
+
                     b.ToTable("Student");
+                });
+
+            modelBuilder.Entity("Restful_API.Models.Entities.Student", b =>
+                {
+                    b.HasOne("Restful_API.Models.Entities.Master.Category", "Categories")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Restful_API.Models.Entities.Master.Class", "Classes")
+                        .WithMany()
+                        .HasForeignKey("ClassesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Restful_API.Models.Entities.Master.Gender", "Genders")
+                        .WithMany()
+                        .HasForeignKey("GendersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Restful_API.Models.Entities.Master.Religion", "Religions")
+                        .WithMany()
+                        .HasForeignKey("ReligionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Restful_API.Models.Entities.Master.Section", "Sections")
+                        .WithMany()
+                        .HasForeignKey("SectionsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Restful_API.Models.Entities.Master.StudyStatus", "StudyStatus")
+                        .WithMany()
+                        .HasForeignKey("StudyStatusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Categories");
+
+                    b.Navigation("Classes");
+
+                    b.Navigation("Genders");
+
+                    b.Navigation("Religions");
+
+                    b.Navigation("Sections");
+
+                    b.Navigation("StudyStatus");
                 });
 #pragma warning restore 612, 618
         }

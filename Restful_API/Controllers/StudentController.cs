@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.JsonPatch;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Restful_API.Data;
 using Restful_API.Logging;
 using Restful_API.Models.DTO;
@@ -13,19 +15,24 @@ namespace Restful_API.Controllers
     {
         private readonly ILogging _logger;
         private readonly ApplicationDbContext _db;
+        private readonly IMapper _mapper;
 
-        public StudentController(ILogging logger,ApplicationDbContext db)
+        public StudentController(ILogging logger,ApplicationDbContext db,IMapper mapper)
         {
             _logger = logger;
             this._db = db;
+            this._mapper = mapper;
         }
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ActionResult<IEnumerable<StudentDto>> GetStudent()
+        public async Task<ActionResult<IEnumerable<StudentDto>>> GetStudent()
         {
-            _logger.Log("Fetch all student record");
-            return Ok(_db.Student.ToList()) ;
+            IEnumerable<Student> studentList = await _db.Student.ToListAsync();
+            return Ok(_mapper.Map<List<StudentDto>>(studentList));
+
+            //_logger.Log("Fetch all student record");
+            //return Ok(_db.Student.ToList()) ;
         }
 
         [HttpGet("{id:int}",Name ="GetStudent")]
@@ -55,7 +62,7 @@ namespace Restful_API.Controllers
         public ActionResult<StudentDto> CreateStudent([FromBody]StudentDto studentDto)
         {
 
-            if(_db.Student.FirstOrDefault(u => u.StudentName.ToLower() == studentDto.StudentName.ToLower()) !=null)
+            if(_db.Student.FirstOrDefault(u => u.FullName.ToLower() == studentDto.FullName.ToLower()) !=null)
             {
                 ModelState.AddModelError("CustomeErrorMessage", "Student already exists!");
                 return BadRequest(ModelState);
@@ -81,7 +88,7 @@ namespace Restful_API.Controllers
             Student student = new()
             {
                 Id =studentDto.StudentId,  
-                StudentName = studentDto.StudentName
+                FullName = studentDto.FullName
             };
             _db.Student.Add(student);
             _db.SaveChanges();
@@ -123,7 +130,7 @@ namespace Restful_API.Controllers
             Student student = new()
             {
                 Id = objStudentDto.StudentId,
-                StudentName = objStudentDto.StudentName
+                FullName = objStudentDto.FullName
             };
             _db.Student.Update(student);
             _db.SaveChanges();
@@ -144,7 +151,7 @@ namespace Restful_API.Controllers
             StudentDto studentdto = new()
             {
                 StudentId = student.Id,
-                StudentName = student.StudentName
+                FullName = student.FullName
             };
 
             if (student == null)
@@ -156,7 +163,7 @@ namespace Restful_API.Controllers
             Student model = new()
             {
                 Id = studentdto.StudentId,
-                StudentName = studentdto.StudentName
+                FullName = studentdto.FullName
             };
 
             if (!ModelState.IsValid)
