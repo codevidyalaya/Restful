@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Restful_API.Models.DTO;
+using Restful_API.Models.DTO.StudentDTOs;
 using Restful_API.Models.Entities;
 
 namespace Restful_API.MapperConfiguration
@@ -8,7 +8,10 @@ namespace Restful_API.MapperConfiguration
     {
         public StudentMappingConfig()
         {
-            CreateMap<Student, StudentDto>().ReverseMap();
+            CreateMap<Student, StudentListDto>().ReverseMap();
+            CreateMap<Student, StudentDetailsDTO>().ReverseMap();
+            CreateMap<Student, CreateStudentDto>().ReverseMap();
         }
     }
+    
 }

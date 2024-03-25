@@ -1,11 +1,9 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Restful_API.Data;
 using Restful_API.Logging;
-using Restful_API.Models.DTO;
+using Restful_API.Models.DTO.StudentDTOs;
 using Restful_API.Models.Entities;
+using Restful_API.Repository.IRepository;
 
 namespace Restful_API.Controllers
 {
@@ -14,86 +12,62 @@ namespace Restful_API.Controllers
     public class StudentController : ControllerBase
     {
         private readonly ILogging _logger;
-        private readonly ApplicationDbContext _db;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
-        public StudentController(ILogging logger,ApplicationDbContext db,IMapper mapper)
+        public StudentController(ILogging logger, IUnitOfWork unitOfWork, IMapper mapper)
         {
             _logger = logger;
-            this._db = db;
+            this._unitOfWork = unitOfWork;
             this._mapper = mapper;
         }
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<StudentDto>>> GetStudent()
+        public async Task<ActionResult<IEnumerable<StudentListDto>>> GetStudent()
         {
-            IEnumerable<Student> studentList = await _db.Student.ToListAsync();
-            return Ok(_mapper.Map<List<StudentDto>>(studentList));
-
-            //_logger.Log("Fetch all student record");
-            //return Ok(_db.Student.ToList()) ;
+            IEnumerable<Student> studentList = await _unitOfWork.Student.GetAllAsync();
+            return Ok(_mapper.Map<List<StudentListDto>>(studentList));
         }
 
         [HttpGet("{id:int}",Name ="GetStudent")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult GetStudent(int id)
+        public async Task<ActionResult> GetStudent(int id)
         {
             if (id == 0)
             {
                 _logger.Log("Get student error with id "+ id,"error");
                 return BadRequest();
             }
+            var studentDetails = await _unitOfWork.Student.GetFirstOrDefaultAsync(u => u.Id == id);
 
-            if (_db.Student.FirstOrDefault(u => u.Id == id) == null)
+            if (studentDetails == null)
             {
                 return NotFound();
             }
 
-            return Ok(_db.Student.FirstOrDefault(u => u.Id == id));
+            return Ok(_mapper.Map<StudentDetailsDTO>(studentDetails));
         }
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<StudentDto> CreateStudent([FromBody]StudentDto studentDto)
+        public async Task<ActionResult<CreateStudentDto>> CreateStudent([FromBody] CreateStudentDto createStudentDto)
         {
 
-            if(_db.Student.FirstOrDefault(u => u.FullName.ToLower() == studentDto.FullName.ToLower()) !=null)
+            if (!ModelState.IsValid || createStudentDto == null)
             {
-                ModelState.AddModelError("CustomeErrorMessage", "Student already exists!");
-                return BadRequest(ModelState);
-            }
-         
-            if(!ModelState.IsValid)
-            {
-                return BadRequest(studentDto);
+                return BadRequest(createStudentDto);
             }
 
-            if(studentDto == null)
-            {
-                return BadRequest(studentDto);
-            }
+            var student = _mapper.Map<Student>(createStudentDto);
+            await _unitOfWork.Student.AddAsync(student);
+            await _unitOfWork.Save();
 
-            if(studentDto.StudentId > 0)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError);
-            }
-
-            // studentDto.StudentId = StudentData.studentList.OrderByDescending(u => u.StudentId).FirstOrDefault().StudentId + 1;
-
-            Student student = new()
-            {
-                Id =studentDto.StudentId,  
-                FullName = studentDto.FullName
-            };
-            _db.Student.Add(student);
-            _db.SaveChanges();
-
-            return CreatedAtRoute("GetStudent", new { id = studentDto.StudentId }, studentDto); //Ok(studentDto);
+            return CreatedAtRoute("GetStudent", new { id = student.Id }, createStudentDto); 
         }
 
         [HttpDelete("{id:int}", Name = "DeleteStudent")]
@@ -106,75 +80,71 @@ namespace Restful_API.Controllers
             {
                 return BadRequest();
             }
-            var student = _db.Student.FirstOrDefault(u => u.Id == id);
+            var student = _unitOfWork.Student.GetFirstOrDefaultAsync(u => u.Id == id);
             if(student == null)
             {
                 return NotFound();
             }
-            _db.Student.Remove(student);
+            _unitOfWork.Student.RemoveAsync(student.Result);
             return NoContent();
         }
 
-        [HttpPut()]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public IActionResult UpdateStudent([FromBody]StudentDto objStudentDto)
-        {
-            if(objStudentDto.StudentId ==0)
-            {
-                return BadRequest();
-            }
-            //var student = _db.Student.FirstOrDefault(u => u.Id == objStudentDto.StudentId);
-            //if(student !=null)
-            //    student.StudentName = objStudentDto.StudentName;
-            Student student = new()
-            {
-                Id = objStudentDto.StudentId,
-                FullName = objStudentDto.FullName
-            };
-            _db.Student.Update(student);
-            _db.SaveChanges();
+        //[HttpPut()]
+        //[ProducesResponseType(StatusCodes.Status204NoContent)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //public IActionResult UpdateStudent([FromBody] CreateStudentDto createStudentDto)
+        //{
+        //    if(createStudentDto.Id ==0)
+        //    {
+        //        return BadRequest();
+        //    }
+        //    //var student = _db.Student.FirstOrDefault(u => u.Id == objStudentDto.StudentId);
+        //    //if(student !=null)
+        //    //    student.StudentName = objStudentDto.StudentName;
+        //    var student = _mapper.Map<Student>(createStudentDto);
+        //    await _unitOfWork.Student.AddAsync(student);
+        //    await _unitOfWork.Save();
 
-            return NoContent();
-        }
+        //    return NoContent();
+        //}
 
-        [HttpPatch()]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public IActionResult UpdateStudentPartial(int id, JsonPatchDocument<StudentDto> patchDto)
-        {
-            if(id==0 || patchDto == null)
-            {
-                return BadRequest();
-            }
-            var student = _db.Student.FirstOrDefault(u => u.Id == id);
-            StudentDto studentdto = new()
-            {
-                StudentId = student.Id,
-                FullName = student.FullName
-            };
+        //[HttpPatch()]
+        //[ProducesResponseType(StatusCodes.Status204NoContent)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //public IActionResult UpdateStudentPartial(int id, JsonPatchDocument<StudentDto> patchDto)
+        //{
+        //    if(id==0 || patchDto == null)
+        //    {
+        //        return BadRequest();
+        //    }
+        //    var student = _unitOfWork.Student.GetFirstOrDefaultAsync(u => u.Id == id);
+        //    StudentDto studentdto = new()
+        //    {
+        //        StudentId = student.Id,
+        //        FullName = student.
+        //    };
 
-            if (student == null)
-            {
-                return BadRequest();
-            }
+        //    if (student == null)
+        //    {
+        //        return BadRequest();
+        //    }
 
-            patchDto.ApplyTo(studentdto, ModelState);
-            Student model = new()
-            {
-                Id = studentdto.StudentId,
-                FullName = studentdto.FullName
-            };
+        //    patchDto.ApplyTo(studentdto, ModelState);
+        //    Student model = new()
+        //    {
+        //        Id = studentdto.StudentId,
+        //        FullName = studentdto.FullName
+        //    };
 
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            _db.Student.Update(student);
-            _db.SaveChanges();
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return BadRequest(ModelState);
+        //    }
+        //    _unitOfWork.Student.Update(student);
+        //    _unitOfWork.Save();
 
-            return NoContent();
-        }
+        //    return NoContent();
+        //}
 
     }
 }
