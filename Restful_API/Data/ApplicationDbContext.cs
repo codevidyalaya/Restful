@@ -88,6 +88,12 @@ namespace Restful_API.Data
                     CreatedDate = new DateTime()
                 }
             );
+
+            modelBuilder.Entity<Student>()
+            .HasOne(s => s.CurrentClass)
+            .WithMany()
+            .HasForeignKey(s => s.CurrentClassId)
+            .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

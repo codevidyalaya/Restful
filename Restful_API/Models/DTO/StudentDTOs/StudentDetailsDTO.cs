@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Restful_API.Models.Entities.Master;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Restful_API.Models.DTO.StudentDTOs
 {
@@ -7,15 +9,10 @@ namespace Restful_API.Models.DTO.StudentDTOs
         public string AdmissionNumber { get; set; }
         public DateTime AdmissionDate { get; set; }
         public string StudentCode { get; set; }
-        public int Status { get; set; }
-        public int AdmissionInClass { get; set; }
-        public int AdmissionInSection { get; set; }
         public string FullName { get; set; }
         public string FirstName { get; set; }
         public string MiddleName { get; set; }
         public string LastName { get; set; }
-        public int CurrentClass { get; set; }
-        public int CurrentSection { get; set; }
         public string FatherName { get; set; }
         public string MotherName { get; set; }
         public string BloodGroup { get; set; }
@@ -26,5 +23,13 @@ namespace Restful_API.Models.DTO.StudentDTOs
         public int CategoryId { get; set; }
         public string EmergencyContactNumber { get; set; }
         public string ProfileImage { get; set; }
+
+        public int StudyStatusId { get; set; }
+        public int AdmissionInClassId { get; set; }
+        public int AdmissionInSectionId { get; set; }
+        public int CurrentClassId { get; set; }
+        public int CurrentSectionId { get; set; }
+
+        public StudyStatus StudyStatus { get; set; }
     }
 }

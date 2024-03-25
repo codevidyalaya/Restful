@@ -1,9 +1,12 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Restful_API.Logging;
+using Restful_API.Models;
 using Restful_API.Models.DTO.StudentDTOs;
 using Restful_API.Models.Entities;
 using Restful_API.Repository.IRepository;
+using System.Net;
 
 namespace Restful_API.Controllers
 {
@@ -11,6 +14,7 @@ namespace Restful_API.Controllers
     [ApiController]
     public class StudentController : ControllerBase
     {
+        protected APIResponse _response;
         private readonly ILogging _logger;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
@@ -20,131 +24,191 @@ namespace Restful_API.Controllers
             _logger = logger;
             this._unitOfWork = unitOfWork;
             this._mapper = mapper;
+            this._response = new();
         }
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<StudentListDto>>> GetStudent()
+        public async Task<ActionResult<APIResponse>> GetStudent()
         {
-            IEnumerable<Student> studentList = await _unitOfWork.Student.GetAllAsync();
-            return Ok(_mapper.Map<List<StudentListDto>>(studentList));
+            try
+            {
+                IEnumerable<Student> studentList = await _unitOfWork.Student.GetAllAsync();
+                _response.Result = _mapper.Map<List<StudentListDto>>(studentList);
+                _response.StatusCode = HttpStatusCode.OK;
+                return Ok(_response);
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages = new List<string>() { ex.ToString() };
+            }
+            return _response;
+
         }
 
-        [HttpGet("{id:int}",Name ="GetStudent")]
+        [HttpGet("{id:int}", Name = "GetStudent")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult> GetStudent(int id)
+        public async Task<ActionResult<APIResponse>> GetStudent(int id)
         {
-            if (id == 0)
+            try
             {
-                _logger.Log("Get student error with id "+ id,"error");
-                return BadRequest();
-            }
-            var studentDetails = await _unitOfWork.Student.GetFirstOrDefaultAsync(u => u.Id == id);
+                if (id == 0)
+                {
+                    _logger.Log("Get student error with id " + id, "error");
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    return BadRequest(_response);
+                }
+                var studentDetails = await _unitOfWork.Student.GetFirstOrDefaultAsync(u => u.Id == id, "StudyStatus");
 
-            if (studentDetails == null)
+                if (studentDetails == null)
+                {
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    return NotFound(_response);
+                }
+
+                _response.Result = _mapper.Map<StudentDetailsDTO>(studentDetails);
+                _response.StatusCode = HttpStatusCode.OK;
+                return Ok(_response);
+            }
+            catch (Exception ex)
             {
-                return NotFound();
+                _response.IsSuccess = false;
+                _response.ErrorMessages = new List<string>() { ex.ToString() };
             }
+            return _response;
 
-            return Ok(_mapper.Map<StudentDetailsDTO>(studentDetails));
         }
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<CreateStudentDto>> CreateStudent([FromBody] CreateStudentDto createStudentDto)
+        public async Task<ActionResult<APIResponse>> CreateStudent([FromBody] CreateStudentDto createStudentDto)
         {
-
-            if (!ModelState.IsValid || createStudentDto == null)
+            try
             {
-                return BadRequest(createStudentDto);
+                if (!ModelState.IsValid || createStudentDto == null)
+                {
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    return BadRequest(_response);
+                }
+
+                var student = _mapper.Map<Student>(createStudentDto);
+                await _unitOfWork.Student.AddAsync(student);
+                await _unitOfWork.Save();
+
+                _response.Result = _mapper.Map<StudentDetailsDTO>(student);
+                _response.StatusCode = HttpStatusCode.Created;
+
+                return CreatedAtRoute("GetStudent", new { id = student.Id }, _response);
             }
-
-            var student = _mapper.Map<Student>(createStudentDto);
-            await _unitOfWork.Student.AddAsync(student);
-            await _unitOfWork.Save();
-
-            return CreatedAtRoute("GetStudent", new { id = student.Id }, createStudentDto); 
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages = new List<string>() { ex.ToString() };
+            }
+            return _response;
         }
 
         [HttpDelete("{id:int}", Name = "DeleteStudent")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult DeleteStudent(int id)
+        public async Task<ActionResult<APIResponse>> DeleteStudent(int id)
         {
-            if(id ==0)
+            try
             {
-                return BadRequest();
+                if (id == 0)
+                {
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    return BadRequest(_response);
+                }
+                var student = await _unitOfWork.Student.GetFirstOrDefaultAsync(u => u.Id == id);
+                if (student == null)
+                {
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    return NotFound(_response);
+                }
+                await _unitOfWork.Student.RemoveAsync(student);
+                _response.StatusCode = HttpStatusCode.NoContent;
+                return Ok(_response);
             }
-            var student = _unitOfWork.Student.GetFirstOrDefaultAsync(u => u.Id == id);
-            if(student == null)
+            catch (Exception ex)
             {
-                return NotFound();
+                _response.IsSuccess = false;
+                _response.ErrorMessages = new List<string>() { ex.ToString() };
             }
-            _unitOfWork.Student.RemoveAsync(student.Result);
-            return NoContent();
+            return _response;
         }
 
-        //[HttpPut()]
-        //[ProducesResponseType(StatusCodes.Status204NoContent)]
-        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
-        //public IActionResult UpdateStudent([FromBody] CreateStudentDto createStudentDto)
-        //{
-        //    if(createStudentDto.Id ==0)
-        //    {
-        //        return BadRequest();
-        //    }
-        //    //var student = _db.Student.FirstOrDefault(u => u.Id == objStudentDto.StudentId);
-        //    //if(student !=null)
-        //    //    student.StudentName = objStudentDto.StudentName;
-        //    var student = _mapper.Map<Student>(createStudentDto);
-        //    await _unitOfWork.Student.AddAsync(student);
-        //    await _unitOfWork.Save();
+        [HttpPut("{id:int}", Name = "UpdateStudent")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<APIResponse>> UpdateStudent([FromBody] UpdateStudentDto updateStudentDto)
+        {
+            try
+            {
+                if (updateStudentDto.Id == 0)
+                {
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    return BadRequest(_response);
+                }
+                var student = _mapper.Map<Student>(updateStudentDto);
 
-        //    return NoContent();
-        //}
+                await _unitOfWork.Student.Update(student);
+                await _unitOfWork.Save();
 
-        //[HttpPatch()]
-        //[ProducesResponseType(StatusCodes.Status204NoContent)]
-        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
-        //public IActionResult UpdateStudentPartial(int id, JsonPatchDocument<StudentDto> patchDto)
-        //{
-        //    if(id==0 || patchDto == null)
-        //    {
-        //        return BadRequest();
-        //    }
-        //    var student = _unitOfWork.Student.GetFirstOrDefaultAsync(u => u.Id == id);
-        //    StudentDto studentdto = new()
-        //    {
-        //        StudentId = student.Id,
-        //        FullName = student.
-        //    };
+                _response.StatusCode = HttpStatusCode.NoContent;
+                return Ok(_response);
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages = new List<string>() { ex.ToString() };
+            }
+            return _response;
+        }
 
-        //    if (student == null)
-        //    {
-        //        return BadRequest();
-        //    }
+        [HttpPatch("{id:int}", Name = "UpdateStudentPartial")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<APIResponse>> UpdateStudentPartial(int id, JsonPatchDocument<UpdateStudentDto> patchDto)
+        {
+            try
+            {
+                if (id == 0 || patchDto == null)
+                {
+                    return BadRequest();
+                }
+                var findRecord = await _unitOfWork.Student.GetFirstOrDefaultAsync(u => u.Id == id);
+                UpdateStudentDto updateStudentDto = _mapper.Map<UpdateStudentDto>(findRecord);
+                if (findRecord == null)
+                {
+                    return BadRequest();
+                }
+                patchDto.ApplyTo(updateStudentDto, ModelState);
 
-        //    patchDto.ApplyTo(studentdto, ModelState);
-        //    Student model = new()
-        //    {
-        //        Id = studentdto.StudentId,
-        //        FullName = studentdto.FullName
-        //    };
+                Student student = _mapper.Map<Student>(updateStudentDto);
 
-        //    if (!ModelState.IsValid)
-        //    {
-        //        return BadRequest(ModelState);
-        //    }
-        //    _unitOfWork.Student.Update(student);
-        //    _unitOfWork.Save();
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+                await _unitOfWork.Student.Update(student);
+                await _unitOfWork.Save();
 
-        //    return NoContent();
-        //}
-
+                _response.StatusCode = HttpStatusCode.NoContent;
+                return Ok(_response);
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages = new List<string>() { ex.ToString() };
+            }
+            return _response;
+        }
     }
 }
