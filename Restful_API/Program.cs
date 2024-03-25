@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Restful_API.Data;
 using Restful_API.Logging;
+using Restful_API.MapperConfiguration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(option =>
 {
     option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultSQLConnection"));
 });
+
+builder.Services.AddAutoMapper(typeof(StudentMappingConfig));
 
 builder.Services.AddControllers().AddNewtonsoftJson() ;
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
