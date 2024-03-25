@@ -1,12 +1,13 @@
-﻿using Restful_API.Models.Entities.Master;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace Restful_API.Models.Entities
+namespace Restful_API.Models.DTO.StudentDTOs
 {
-    public class Student : BaseEntity
+    public class UpdateStudentDto
     {
+        [Required]
+        public int Id { get; set; }
         public string AdmissionNumber { get; set; }
-        public DateTime AdmissionDate { get; set; }       
+        public DateTime AdmissionDate { get; set; }
         public string StudentCode { get; set; }
         public string FullName { get; set; }
         public string FirstName { get; set; }
@@ -23,31 +24,10 @@ namespace Restful_API.Models.Entities
         public string EmergencyContactNumber { get; set; }
         public string ProfileImage { get; set; }
 
-        [ForeignKey("StudyStatusId")]
         public int StudyStatusId { get; set; }
-        public StudyStatus StudyStatus { get; set; }
-
-
-        [ForeignKey("AdmissionInClassId")]
         public int AdmissionInClassId { get; set; }
-        public Class AdmissionInClass { get; set; }
-
-
-        [ForeignKey("AdmissionInSectionId")]
         public int AdmissionInSectionId { get; set; }
-        public Section AdmissionInSection { get; set; }
-
-
-        [ForeignKey("CurrentClassId")]
         public int CurrentClassId { get; set; }
-        public Class CurrentClass { get; set; }
-
-
-        [ForeignKey("CurrentSectionId")]
         public int CurrentSectionId { get; set; }
-        public Section CurrentSection { get; set; }
-
-        public Religion Religion { get; set; }
-        public Category Category { get; set; }
     }
 }
