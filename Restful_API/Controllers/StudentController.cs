@@ -8,10 +8,11 @@ using Restful_API.Models.DTO.StudentDTOs;
 using Restful_API.Models.Entities;
 using Restful_API.Repository.IRepository;
 using System.Net;
+using System.Text.Json;
 
 namespace Restful_API.Controllers
 {
-    [Authorize]
+    
     [Route("api/[controller]")]
     [ApiController]
     public class StudentController : ControllerBase
@@ -30,12 +31,25 @@ namespace Restful_API.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(CacheProfileName = "Default10")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<APIResponse>> GetStudent()
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<APIResponse>> GetStudent([FromQuery(Name ="filterStudyStatus")]int? studyStatus, int pageSize = 0, int pageNumer = 1)
         {
             try
             {
-                IEnumerable<Student> studentList = await _unitOfWork.Student.GetAllAsync();
+                IEnumerable<Student> studentList;
+                if (studyStatus > 0)
+                {
+                    studentList = await _unitOfWork.Student.GetAllAsync(u=>u.StudyStatusId==studyStatus,null,pageSize,pageNumer);
+                }
+                else
+                {
+                    studentList = await _unitOfWork.Student.GetAllAsync(null,pageSize,pageNumer);
+                }
+                Pagination pagination = new() { PageNumber = pageNumer, PageSize = pageSize };
+                Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(pagination));
                 _response.Result = _mapper.Map<List<StudentListDto>>(studentList);
                 _response.StatusCode = HttpStatusCode.OK;
                 return Ok(_response);
@@ -48,11 +62,13 @@ namespace Restful_API.Controllers
             return _response;
 
         }
-
+        [Authorize]
         [HttpGet("{id:int}", Name = "GetStudent")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<APIResponse>> GetStudent(int id)
         {
             try
@@ -88,6 +104,8 @@ namespace Restful_API.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<APIResponse>> CreateStudent([FromBody] CreateStudentDto createStudentDto)
         {
             try
@@ -119,6 +137,8 @@ namespace Restful_API.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<APIResponse>> DeleteStudent(int id)
         {
             try
@@ -149,6 +169,8 @@ namespace Restful_API.Controllers
         [HttpPut("{id:int}", Name = "UpdateStudent")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<APIResponse>> UpdateStudent([FromBody] UpdateStudentDto updateStudentDto)
         {
             try
@@ -177,6 +199,8 @@ namespace Restful_API.Controllers
         [HttpPatch("{id:int}", Name = "UpdateStudentPartial")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<APIResponse>> UpdateStudentPartial(int id, JsonPatchDocument<UpdateStudentDto> patchDto)
         {
             try
