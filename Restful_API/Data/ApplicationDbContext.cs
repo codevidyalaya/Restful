@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Restful_API.Models.Entities;
+using Restful_API.Models.Entities.LocalUsers;
 using Restful_API.Models.Entities.Master;
 
 namespace Restful_API.Data
@@ -21,6 +22,9 @@ namespace Restful_API.Data
         public DbSet<Class> Class { get; set; }
         public DbSet<Section> Section { get; set; }
         public DbSet<Gender> Gender { get; set; }
+
+        public DbSet<LocalUser> LocalUser { get; set; }
+        public DbSet<LocalUserRole> LocalUserRole { get; set; }
 
         #endregion
 
@@ -69,6 +73,10 @@ namespace Restful_API.Data
             modelBuilder.Entity<Section>().HasData(
              new Class() { Id = 1, Name = "A" }
             );
+
+            modelBuilder.Entity<LocalUserRole>().HasData(
+              new LocalUserRole() { Id = 1, Name = "Admin" }
+           );
 
 
             modelBuilder.Entity<School>().HasData(
