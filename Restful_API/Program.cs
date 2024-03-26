@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +29,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(option =>
 builder.Services.AddAutoMapper(typeof(StudentMappingConfig));
 builder.Services.AddScoped<ILocalUserRepository, LocalUserRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddControllers().AddNewtonsoftJson() ;
+builder.Services.AddControllers().AddNewtonsoftJson();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -56,6 +57,16 @@ builder.Services.AddAuthentication(x =>
         ValidAudience = "your_audience", // The audience of the token
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)) // The key used to sign the token
     };
+});
+
+builder.Services.AddControllers(option =>
+{
+    option.CacheProfiles.Add("Default10",
+        new CacheProfile()
+        {
+            Duration = 10
+        }
+    );
 });
 
 builder.Services.AddSwaggerGen(options =>

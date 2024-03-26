@@ -26,9 +26,17 @@ namespace Restful_API.Repository
            await dbSet.AddRangeAsync(entities);
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync(string? includeProperties = null)
+        public async Task<IEnumerable<T>> GetAllAsync(string? includeProperties = null, int pageSize = 0, int pageNumer = 1)
         {
             IQueryable<T> query = dbSet;
+            if(pageSize > 0)
+            {
+                if(pageSize > 100)
+                {
+                    pageSize = 100;
+                }
+                query= query.Skip(pageSize*(pageNumer-1)).Take(pageSize);
+            }
             if (includeProperties != null)
             {
                 foreach (var item in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -39,10 +47,18 @@ namespace Restful_API.Repository
             return await query.ToListAsync();
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> filter, string? includeProperties = null)
+        public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> filter, string? includeProperties = null, int pageSize = 0, int pageNumer = 1)
         {
             IQueryable<T> query = dbSet;
             query = query.Where(filter);
+            if (pageSize > 0)
+            {
+                if (pageSize > 100)
+                {
+                    pageSize = 100;
+                }
+                query = query.Skip(pageSize * (pageNumer - 1)).Take(pageSize);
+            }
             if (includeProperties != null)
             {
                 foreach (var item in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
