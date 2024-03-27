@@ -40,7 +40,7 @@ namespace Restful_API.Repository
                 return new LoginResponseDto()
                 {
                     Token = "",
-                    User = null
+                    LocalUser = null
                 };
             }
 
@@ -63,7 +63,7 @@ namespace Restful_API.Repository
             LoginResponseDto loginResponseDto = new()
             {
                 Token = tokenHandler.WriteToken(token),
-                User = user
+                LocalUser = user
             };
             return loginResponseDto;
         }

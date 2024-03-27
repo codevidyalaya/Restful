@@ -1,13 +1,17 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Restful_API.Models;
 using Restful_API.Models.Entities;
 using Restful_API.Models.Entities.LocalUsers;
 using Restful_API.Models.Entities.Master;
 
 namespace Restful_API.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>//DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+        public DbSet<ApplicationUser> ApplicationUser { get; set; }
+
         public DbSet<School> School { get; set; }
         public DbSet<Student> Student { get; set; }
 
@@ -30,6 +34,8 @@ namespace Restful_API.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<Country>().HasData(
                 new Country() { Id = 1, Name = "India" }
             );
